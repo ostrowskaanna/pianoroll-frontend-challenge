@@ -133,7 +133,7 @@ class PianoRollDisplay {
             endLine.setAttribute('x1', x);
             endLine.setAttribute('x2', x); 
           }
-          this.getSelectionData();
+          this.getSelectionData(svg);
         }
         isSelecting = false;
         isDown = false;
@@ -154,7 +154,7 @@ class PianoRollDisplay {
             endLine.setAttribute('x1', 1);
             endLine.setAttribute('x2', 1); 
           }
-          this.getSelectionData();
+          this.getSelectionData(svg);
         }
         isSelecting = false;
         isDown = false;
@@ -167,11 +167,20 @@ class PianoRollDisplay {
     return { cardDiv, svg }
   }
 
-  getSelectionData() {
+  getSelectionData(svg) {
     const x1 = parseFloat(startLine.getAttribute('x1'));
     const x2 = parseFloat(endLine.getAttribute('x1'));
-    
     console.log(x1, x2);
+
+    let notesCounter = 0;
+    const allRect = svg.querySelectorAll('rect.note-rectangle');
+    allRect.forEach(rect => {
+      const x = rect.getAttribute('x');
+      if(x >= x1 && x <= x2) {
+        notesCounter += 1;
+      }
+    });
+    console.log(notesCounter);
   }
 
   async generateSVGs() {
