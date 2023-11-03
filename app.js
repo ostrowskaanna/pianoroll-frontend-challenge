@@ -19,28 +19,25 @@ class PianoRollDisplay {
   }
 
   drawLine(svg, x) {
-    var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', x);
     line.setAttribute('y1', 0); 
     line.setAttribute('x2', x); 
     line.setAttribute('y2', 1); 
     line.setAttribute('stroke', '#944038');
-    line.setAttribute('stroke-width', 0.002);
+    line.setAttribute('stroke-width', 0.005);
     svg.appendChild(line);
     return line;
   }
 
-  drawRect(svg) {
-    const x1 = parseFloat(startLine.getAttribute('x1'));
-    const x2 = parseFloat(endLine.getAttribute('x1'));
-    const width = Math.abs(x2 - x1);
-
+  drawRect(svg, x) {
     const rectangle = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    rectangle.setAttribute('x', Math.min(x1, x2));
+    rectangle.setAttribute('x', x);
     rectangle.setAttribute('y', 0); 
-    rectangle.setAttribute('width', width); 
+    rectangle.setAttribute('width', 0); 
     rectangle.setAttribute('height', 150); 
     rectangle.setAttribute('fill', '#944038'); 
+    rectangle.setAttribute('style', 'opacity: 0.5');
     svg.appendChild(rectangle);
     rangeRect = rectangle;
   }
@@ -75,64 +72,93 @@ class PianoRollDisplay {
       isDown = true;
       if(selectedRollId == rollId) {
         const svgRect = svg.getBoundingClientRect(); // svg position
-        var mouseX = e.clientX - svgRect.left; // mouse position on svg
-        var x = mouseX / svgRect.width; // mouse position normalized 
+        let mouseX = e.clientX - svgRect.left; // mouse position on svg
+        let x = mouseX / svgRect.width; // mouse position normalized 
         console.log("starting line");
 
         // Create starting line if first
         if(startLine == null) {
           startLine = this.drawLine(svg, x);
-
+          this.drawRect(svg, x);
         }
         // Move starting line
         else {
           startLine.setAttribute('x1', x);
           startLine.setAttribute('x2', x);
-
           // Move ending line so it's not visible
           if(endLine) {
-            endLine.setAttribute('x1', 0);
-            endLine.setAttribute('x2', 0);
+            endLine.setAttribute('x1', x);
+            endLine.setAttribute('x2', x);
           }
+          // Move rectangle 
+          rangeRect.setAttribute('x', x);
+          rangeRect.setAttribute('width', 0);
         }
       }
     });
 
     // Handle mouse move
     svg.addEventListener('mousemove', (e) => {
-      if(selectedRollId == rollId  && isDown) {
-        isSelecting = true;
-        // TODO draw selection while moving
+      console.log(isDown);
+      if(selectedRollId == rollId && isDown) {
+        const svgRect = svg.getBoundingClientRect(); // svg position
+        let mouseX = e.clientX - svgRect.left; // mouse position on svg
+        let x = mouseX / svgRect.width; // mouse position normalized 
+        const x1 = startLine.getAttribute('x1');
+        //enable only right directed selection
+        if(x > x1) {
+          isSelecting = true;
+          rangeRect.setAttribute('width', x-x1);
+        }
+        else {
+          isSelecting = false;
+        }
       }
     });
     
     // Handle end selection 
     svg.addEventListener('mouseup', (e) => {
-      if(selectedRollId == rollId && isDown && isSelecting) {
+      if(selectedRollId == rollId && isDown) {
         const svgRect = svg.getBoundingClientRect(); // svg position
-        var mouseX = e.clientX - svgRect.left; // mouse position on svg
-        var x = mouseX / svgRect.width; // mouse position normalized 
-        console.log("ending line");
-
-        // Create ending line if first
-        if(endLine == null) {
-          endLine = this.drawLine(svg, x);
-        }
-        // Move ending line so it's visible
-        else {
-          endLine.setAttribute('x1', x);
-          endLine.setAttribute('x2', x); 
+        let mouseX = e.clientX - svgRect.left; // mouse position on svg
+        let x = mouseX / svgRect.width; // mouse position normalized 
+        if(isSelecting) {
+          console.log("ending line");
+          // Create ending line if first
+          if(endLine == null) {
+            endLine = this.drawLine(svg, x);
+          }
+          // Move ending line so it's visible
+          else {
+            endLine.setAttribute('x1', x);
+            endLine.setAttribute('x2', x); 
+          }
+          this.getSelectionData();
         }
         isSelecting = false;
         isDown = false;
-        this.getSelectionData();
       }
     });
 
     // Handle out of range selection
     svg.addEventListener('mouseleave', () => {
-      isSelecting = false;
-      isDown = false;
+      if(selectedRollId == rollId && isDown) {
+        if(isSelecting) {
+          console.log("ending line");
+          // Create ending line if first
+          if(endLine == null) {
+            endLine = this.drawLine(svg, 1);
+          }
+          // Move ending line so it's visible
+          else {
+            endLine.setAttribute('x1', 1);
+            endLine.setAttribute('x2', 1); 
+          }
+          this.getSelectionData();
+        }
+        isSelecting = false;
+        isDown = false;
+      }
     });
 
     // Append the SVG to the card container
@@ -144,13 +170,15 @@ class PianoRollDisplay {
   getSelectionData() {
     const x1 = parseFloat(startLine.getAttribute('x1'));
     const x2 = parseFloat(endLine.getAttribute('x1'));
+    
     console.log(x1, x2);
   }
 
   async generateSVGs() {
     if (!this.data) await this.loadPianoRollData();
     if (!this.data) return;
-    
+
+    setGridView();  
     pianoRollContainer.innerHTML = '';
     for (let it = 0; it < 20; it++) {
       const start = it * 60;
@@ -166,7 +194,6 @@ class PianoRollDisplay {
 }
 
 document.getElementById('loadCSV').addEventListener('click', async () => {
-  setGridView(); // reset view
   const csvToSVG = new PianoRollDisplay();
   await csvToSVG.generateSVGs();
 });
@@ -190,10 +217,9 @@ window.addEventListener('load', () => {
   mainPianoRollContainer = document.getElementById('mainPianoRollContainer');
 });
 
-// Remove and clear PianoRoll from Main View
+// Remove PianoRoll and clear svg from Main View
 function clearCardSelection() {
   pianoRollContainer.appendChild(selectedRoll);
-  // remove lines from svg
   const selectedRollSvg = selectedRoll.querySelector('svg');
   if(startLine) {
     selectedRollSvg.removeChild(startLine);
@@ -201,8 +227,12 @@ function clearCardSelection() {
   if(endLine) {
     selectedRollSvg.removeChild(endLine);
   }
+  if(rangeRect) {
+    selectedRollSvg.removeChild(rangeRect);
+  }
   startLine = null;
   endLine = null;
+  rangeRect = null;
   selectedRoll = null;
 }
 
@@ -210,7 +240,6 @@ function clearCardSelection() {
 function setMainView() {
   pianoRollContainer.classList.add('mainView');
   pianoRollContainer.classList.remove('gridView');
-
   viewContainer.classList.add('mainViewContainer');
   viewContainer.classList.remove('gridViewContainer');
 
@@ -226,12 +255,12 @@ function setMainView() {
 function setGridView() {
   pianoRollContainer.classList.add('gridView');
   pianoRollContainer.classList.remove('mainView');
-
   viewContainer.classList.add('gridViewContainer');
   viewContainer.classList.remove('mainViewContainer');
 
   if(selectedRoll != null) {
     clearCardSelection();
+    selectedRollId = null;
   }
 }
 
