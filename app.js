@@ -74,8 +74,6 @@ class PianoRollDisplay {
         const svgRect = svg.getBoundingClientRect(); // svg position
         let mouseX = e.clientX - svgRect.left; // mouse position on svg
         let x = mouseX / svgRect.width; // mouse position normalized 
-        console.log("starting line");
-
         // Create starting line if first
         if(startLine == null) {
           startLine = this.drawLine(svg, x);
@@ -85,12 +83,12 @@ class PianoRollDisplay {
         else {
           startLine.setAttribute('x1', x);
           startLine.setAttribute('x2', x);
-          // Move ending line so it's not visible
+          // Move ending line to the same position so it's not visible
           if(endLine) {
             endLine.setAttribute('x1', x);
             endLine.setAttribute('x2', x);
           }
-          // Move rectangle 
+          // Hide selection rectangle 
           rangeRect.setAttribute('x', x);
           rangeRect.setAttribute('width', 0);
         }
@@ -99,19 +97,20 @@ class PianoRollDisplay {
 
     // Handle mouse move
     svg.addEventListener('mousemove', (e) => {
-      console.log(isDown);
       if(selectedRollId == rollId && isDown) {
         const svgRect = svg.getBoundingClientRect(); // svg position
         let mouseX = e.clientX - svgRect.left; // mouse position on svg
         let x = mouseX / svgRect.width; // mouse position normalized 
-        const x1 = startLine.getAttribute('x1');
-        //enable only right directed selection
-        if(x > x1) {
-          isSelecting = true;
-          rangeRect.setAttribute('width', x-x1);
-        }
-        else {
-          isSelecting = false;
+        if(startLine) {
+          const x1 = startLine.getAttribute('x1');
+          // Show only right directed selection
+          if(x > x1) {
+            isSelecting = true;
+            rangeRect.setAttribute('width', x-x1);
+          }
+          else {
+            isSelecting = false;
+          }
         }
       }
     });
@@ -123,41 +122,37 @@ class PianoRollDisplay {
         let mouseX = e.clientX - svgRect.left; // mouse position on svg
         let x = mouseX / svgRect.width; // mouse position normalized 
         if(isSelecting) {
-          console.log("ending line");
           // Create ending line if first
           if(endLine == null) {
             endLine = this.drawLine(svg, x);
           }
-          // Move ending line so it's visible
+          // Move ending line to selected position
           else {
             endLine.setAttribute('x1', x);
             endLine.setAttribute('x2', x); 
           }
           this.getSelectionData(svg);
+          isSelecting = false;
         }
-        isSelecting = false;
         isDown = false;
       }
     });
 
     // Handle out of range selection
     svg.addEventListener('mouseleave', () => {
-      if(selectedRollId == rollId && isDown) {
-        if(isSelecting) {
-          console.log("ending line");
+      if(selectedRollId == rollId && isDown && isSelecting) {
           // Create ending line if first
           if(endLine == null) {
             endLine = this.drawLine(svg, 1);
           }
-          // Move ending line so it's visible
+          // Move ending line to the end
           else {
             endLine.setAttribute('x1', 1);
             endLine.setAttribute('x2', 1); 
           }
           this.getSelectionData(svg);
-        }
-        isSelecting = false;
-        isDown = false;
+          isSelecting = false;
+          isDown = false;
       }
     });
 
@@ -170,17 +165,14 @@ class PianoRollDisplay {
   getSelectionData(svg) {
     const x1 = parseFloat(startLine.getAttribute('x1'));
     const x2 = parseFloat(endLine.getAttribute('x1'));
-    console.log(x1, x2);
+    console.log(`x1: ${x1} x2: ${x2}`);
 
-    let notesCounter = 0;
     const allRect = svg.querySelectorAll('rect.note-rectangle');
-    allRect.forEach(rect => {
+    const notesCounter = [...allRect].filter(rect => {
       const x = rect.getAttribute('x');
-      if(x >= x1 && x <= x2) {
-        notesCounter += 1;
-      }
-    });
-    console.log(notesCounter);
+      return x >= x1 && x <= x2;
+    }).length;
+    console.log("notes: " + notesCounter);
   }
 
   async generateSVGs() {
@@ -188,6 +180,7 @@ class PianoRollDisplay {
     if (!this.data) return;
 
     setGridView();  
+
     pianoRollContainer.innerHTML = '';
     for (let it = 0; it < 20; it++) {
       const start = it * 60;
@@ -205,6 +198,10 @@ class PianoRollDisplay {
 document.getElementById('loadCSV').addEventListener('click', async () => {
   const csvToSVG = new PianoRollDisplay();
   await csvToSVG.generateSVGs();
+});
+
+document.querySelector('.logo-container').addEventListener('click', () => {
+  setGridView();
 });
 
 // Global variables

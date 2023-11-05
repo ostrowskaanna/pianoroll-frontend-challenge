@@ -15,6 +15,7 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
+  min-width: 400px;
 }
 
 .navbar {
@@ -29,6 +30,7 @@ body {
   height: 40px;
   width: auto;
   fill: white;
+  cursor: pointer;
 }
 
 .gridView {
@@ -140,14 +142,14 @@ button:hover {
   margin-top: 10px;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
   .gridView {
     grid-template-columns: repeat(2, 1fr); 
   }
 }
 
 
-@media (max-width: 800px) {
+@media (max-width: 1000px) {
   .gridView {
     grid-template-columns: repeat(1, 1fr); 
   }
@@ -155,9 +157,7 @@ button:hover {
   .mainViewContainer {
     display: flex;
     flex-direction: column;
-    padding: 0px;
     height: auto;
-    /* height: auto; to remove scrollbar on phone view*/ 
   }
 
   .mainView {
@@ -166,10 +166,8 @@ button:hover {
     gap: 20px;
   }
 
-  #pianoRollContainer{
+  #pianoRollContainer {
     overflow-y: hidden;
     overflow-x: auto;
   }
-
-
 }
