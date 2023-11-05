@@ -2,7 +2,11 @@
 
 ## Results
 
+### Visual demonstration
 https://github.com/ostrowskaanna/pianoroll-frontend-challenge/assets/72552734/aaaa40c4-989d-4989-b633-757d52ff4b0c
+
+### Data capture
+<img alt="captured-data-image" src="https://github.com/ostrowskaanna/pianoroll-frontend-challenge/assets/72552734/e4af6eeb-8065-4983-969f-790bfcfe4559">
 <hr>
 
 ## Introduction
